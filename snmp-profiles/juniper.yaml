@@ -1,0 +1,19 @@
+# JUNIPER-MIB
+vendor: "Juniper"
+applies_to: "Junos devices (MX, EX, QFX, SRX)"
+
+oids:
+  - name: jnxOperatingTemp
+    oid: 1.3.6.1.4.1.2636.3.1.13.1.7
+    description: "Temperature of an operating component, celsius."
+  - name: jnxOperatingDescr
+    oid: 1.3.6.1.4.1.2636.3.1.13.1.5
+    description: "Which component this index refers to (Routing Engine, FPC, chassis, PSU)."
+
+scaling: "None — whole degrees."
+units: "Celsius."
+
+notes: |
+  Indexed per operating component, so a single device returns many rows. Walk jnxOperatingDescr
+  first and pick the chassis/intake entries; the Routing Engine will always read hotter and is
+  not a proxy for room temperature.

@@ -1,0 +1,23 @@
+# CISCO-ENVMON-MIB
+vendor: "Cisco"
+applies_to: "IOS, IOS-XE, NX-OS switches and routers with environmental sensors"
+
+oids:
+  - name: ciscoEnvMonTemperatureStatusValue
+    oid: 1.3.6.1.4.1.9.9.13.1.3.1.3
+    description: "Current temperature reading, whole degrees celsius."
+  - name: ciscoEnvMonTemperatureStatusDescr
+    oid: 1.3.6.1.4.1.9.9.13.1.3.1.2
+    description: "Sensor description — use it to identify inlet vs outlet vs CPU."
+  - name: ciscoEnvMonTemperatureState
+    oid: 1.3.6.1.4.1.9.9.13.1.3.1.6
+    description: "Device's own verdict: 1 normal, 2 warning, 3 critical, 4 shutdown, 5 notPresent, 6 notFunctioning."
+
+scaling: "None — whole degrees."
+units: "Celsius."
+
+notes: |
+  Newer IOS-XE also answers on ENTITY-SENSOR-MIB (see standard-entity-sensor.yaml); prefer that
+  when it responds, since it gives you scale and precision explicitly.
+  ciscoEnvMonTemperatureState is useful as a second opinion but don't rely on it alone —
+  vendors set those thresholds conservatively for the chassis, not for your room.

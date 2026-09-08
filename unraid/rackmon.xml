@@ -1,0 +1,30 @@
+<?xml version="1.0"?>
+<Container version="2">
+  <Name>RackMon</Name>
+  <Repository>rackmon/rackmon:latest</Repository>
+  <Registry>https://hub.docker.com/r/rackmon/rackmon</Registry>
+  <Network>bridge</Network>
+  <Shell>sh</Shell>
+  <Privileged>false</Privileged>
+  <Support>https://github.com/REPLACE_ME/rackmon/issues</Support>
+  <Project>https://rackmon.app</Project>
+  <Overview>
+    Self-hosted rack temperature and SNMP monitoring. Live per-U thermal heatmaps,
+    SNMP v2c/v3 polling, alerting with hold-down windows and deduplication,
+    availability/SLA reports and a public status page - in a single container.
+    No account, no phone-home. The Community edition is free forever with
+    unlimited devices and metrics.
+  </Overview>
+  <Category>Tools: Network:Management Status:Stable</Category>
+  <WebUI>http://[IP]:[PORT:8000]/</WebUI>
+  <Icon>https://rackmon.app/assets/icon-512.png</Icon>
+  <ExtraParams>--restart=unless-stopped</ExtraParams>
+  <Config Name="WebUI Port" Target="8000" Default="8000" Mode="tcp" Type="Port" Display="always" Required="true">8000</Config>
+  <Config Name="Data" Target="/data" Default="/mnt/user/appdata/rackmon" Mode="rw" Type="Path" Display="always" Required="true">/mnt/user/appdata/rackmon</Config>
+  <Config Name="Database URL" Target="RACKMON_DATABASE_URL" Default="sqlite:////data/rackmon.db" Type="Variable" Display="advanced" Required="true">sqlite:////data/rackmon.db</Config>
+  <Config Name="JWT Secret" Target="RACKMON_JWT_SECRET" Default="" Type="Variable" Display="always" Required="true" Mask="true">CHANGE-ME-openssl-rand-hex-32</Config>
+  <Config Name="Master Key (encrypts stored credentials)" Target="RACKMON_MASTER_KEY" Default="" Type="Variable" Display="always" Required="true" Mask="true">CHANGE-ME-openssl-rand-hex-32</Config>
+  <Config Name="Use simulator (fake telemetry to look around)" Target="RACKMON_POLLER_USE_SIMULATOR" Default="true" Type="Variable" Display="always" Required="false">true</Config>
+  <Config Name="Seed demo data" Target="RACKMON_SEED_DEMO_DATA" Default="true" Type="Variable" Display="advanced" Required="false">true</Config>
+  <Config Name="Update check (off = no outbound traffic)" Target="RACKMON_UPDATE_CHECK_ENABLED" Default="false" Type="Variable" Display="advanced" Required="false">false</Config>
+</Container>

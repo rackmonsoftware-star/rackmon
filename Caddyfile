@@ -1,0 +1,6 @@
+# Local/self-signed by default. For a real hostname with automatic Let's Encrypt
+# TLS, replace `:80` with your domain, e.g.  rackmon.example.com { ... }
+:80 {
+	encode gzip
+	reverse_proxy rackmon:8000
+}

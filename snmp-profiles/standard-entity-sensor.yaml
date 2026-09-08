@@ -1,0 +1,31 @@
+# ENTITY-SENSOR-MIB (RFC 3433) — vendor-neutral. Try this before anything else.
+vendor: "Standard (RFC 3433)"
+applies_to: "Any device implementing ENTITY-SENSOR-MIB — much modern Cisco, Juniper, Arista, and others"
+
+oids:
+  - name: entPhySensorValue
+    oid: 1.3.6.1.2.1.99.1.1.1.4
+    description: "The sensor reading itself. Raw integer — must be scaled, see below."
+  - name: entPhySensorType
+    oid: 1.3.6.1.2.1.99.1.1.1.1
+    description: "Unit of the reading. 8 = celsius. Check this before assuming."
+  - name: entPhySensorScale
+    oid: 1.3.6.1.2.1.99.1.1.1.2
+    description: "Power-of-ten multiplier. 9 = units(10^0), 8 = milli, 10 = kilo."
+  - name: entPhySensorPrecision
+    oid: 1.3.6.1.2.1.99.1.1.1.3
+    description: "Decimal places implied in the value. 1 means divide by 10."
+  - name: entPhySensorOperStatus
+    oid: 1.3.6.1.2.1.99.1.1.1.5
+    description: "1 = ok, 2 = unavailable, 3 = nonoperational. Ignore readings that aren't ok."
+  - name: entPhysicalDescr
+    oid: 1.3.6.1.2.1.47.1.1.1.1.2
+    description: "ENTITY-MIB. Human-readable sensor names — how you find which index is the inlet."
+
+scaling: "value * 10^(scale-9) / 10^precision. In practice most gear reports celsius with precision 0 or 1."
+units: "Read entPhySensorType; do not assume celsius."
+
+notes: |
+  This is the right first stop. Walk entPhysicalDescr alongside entPhySensorValue and match the
+  indexes — the descriptions tell you which sensor is inlet, exhaust, CPU or PSU.
+  If the walk returns nothing, fall back to the vendor-specific profile.

@@ -1,0 +1,25 @@
+# Minimal RackMon — one container, SQLite, no reverse proxy.
+# Good for a homelab or for trying it out.
+#
+#   docker compose -f docker-compose.sqlite.yml up -d
+#   open http://localhost:8000
+
+services:
+  rackmon:
+    image: rackmon/rackmon:latest
+    ports:
+      - "8000:8000"
+    volumes:
+      - rackmon_data:/data
+    environment:
+      RACKMON_DATABASE_URL: sqlite:////data/rackmon.db
+      RACKMON_JWT_SECRET: ${RACKMON_JWT_SECRET:?generate with openssl rand -hex 32}
+      RACKMON_MASTER_KEY: ${RACKMON_MASTER_KEY:?generate with openssl rand -hex 32}
+      RACKMON_POLLER_ENABLED: "true"
+      RACKMON_POLLER_USE_SIMULATOR: "true"
+      RACKMON_SEED_DEMO_DATA: "true"
+      RACKMON_UPDATE_CHECK_ENABLED: "false"
+    restart: unless-stopped
+
+volumes:
+  rackmon_data:

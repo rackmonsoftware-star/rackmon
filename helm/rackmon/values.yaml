@@ -1,0 +1,59 @@
+# RackMon Helm values. Override with -f my-values.yaml or --set.
+
+image:
+  # Build with backend/Dockerfile and push to your registry, then set this.
+  repository: ghcr.io/your-org/rackmon
+  tag: "1.0.0"
+  pullPolicy: IfNotPresent
+
+replicaCount: 2
+
+# The API process can run the poller in-process; for multi-replica setups run
+# a single dedicated poller (poller.enabled) and disable it on the API pods.
+poller:
+  enabled: true          # run one dedicated poller Deployment
+  useSimulator: false
+
+api:
+  pollerEnabled: false   # keep polling on the dedicated poller, not every replica
+  resources:
+    requests: { cpu: 100m, memory: 256Mi }
+    limits: { cpu: "1", memory: 512Mi }
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 6
+  targetCPUUtilizationPercentage: 70
+
+# Secrets — generate with `openssl rand -hex 32`. In production prefer an
+# external secret manager and set existingSecret instead.
+secrets:
+  existingSecret: ""     # if set, these are ignored
+  jwtSecret: "change-me"
+  masterKey: "change-me"
+  dbPassword: "change-me"
+
+config:
+  environment: production
+  publicBaseUrl: "https://rackmon.example.com"
+  seedDemoData: false
+
+postgres:
+  enabled: true          # set false to use an external DATABASE_URL
+  image: timescale/timescaledb:latest-pg16
+  storage: 20Gi
+  externalDatabaseUrl: ""  # e.g. postgresql+psycopg2://user:pass@host:5432/rackmon
+
+redis:
+  enabled: true
+  image: redis:7-alpine
+
+ingress:
+  enabled: true
+  className: nginx
+  host: rackmon.example.com
+  tls:
+    enabled: true
+    secretName: rackmon-tls
+  annotations: {}

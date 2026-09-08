@@ -1,0 +1,23 @@
+{{- if not .Values.secrets.existingSecret }}
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ include "rackmon.fullname" . }}-secrets
+  labels: {{- include "rackmon.labels" . | nindent 4 }}
+type: Opaque
+stringData:
+  RACKMON_JWT_SECRET: {{ .Values.secrets.jwtSecret | quote }}
+  RACKMON_MASTER_KEY: {{ .Values.secrets.masterKey | quote }}
+  DB_PASSWORD: {{ .Values.secrets.dbPassword | quote }}
+{{- end }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "rackmon.fullname" . }}-config
+  labels: {{- include "rackmon.labels" . | nindent 4 }}
+data:
+  RACKMON_ENVIRONMENT: {{ .Values.config.environment | quote }}
+  RACKMON_PUBLIC_BASE_URL: {{ .Values.config.publicBaseUrl | quote }}
+  RACKMON_SEED_DEMO_DATA: {{ .Values.config.seedDemoData | quote }}
+  RACKMON_CORS_ORIGINS: '["{{ .Values.config.publicBaseUrl }}"]'

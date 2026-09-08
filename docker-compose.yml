@@ -1,0 +1,61 @@
+# RackMon — production single-node stack.
+#
+#   1. cp .env.example .env   &&   set the two secrets
+#   2. docker compose up -d
+#   3. open http://localhost:8080
+#
+# Caddy (TLS/edge) -> rackmon (API + UI + poller) -> TimescaleDB.
+# Pulls the published image; nothing is built locally.
+
+services:
+  db:
+    image: timescale/timescaledb:latest-pg16
+    environment:
+      POSTGRES_USER: rackmon
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-rackmon}
+      POSTGRES_DB: rackmon
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U rackmon -d rackmon"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+    restart: unless-stopped
+
+  rackmon:
+    image: rackmon/rackmon:latest
+    environment:
+      RACKMON_ENVIRONMENT: production
+      RACKMON_DATABASE_URL: postgresql+psycopg2://rackmon:${DB_PASSWORD:-rackmon}@db:5432/rackmon
+      RACKMON_JWT_SECRET: ${RACKMON_JWT_SECRET:?set RACKMON_JWT_SECRET in .env}
+      RACKMON_MASTER_KEY: ${RACKMON_MASTER_KEY:?set RACKMON_MASTER_KEY in .env}
+      RACKMON_PUBLIC_BASE_URL: ${RACKMON_PUBLIC_BASE_URL:-http://localhost:8080}
+      RACKMON_CORS_ORIGINS: '["${RACKMON_PUBLIC_BASE_URL:-http://localhost:8080}"]'
+      RACKMON_POLLER_ENABLED: "true"
+      RACKMON_POLLER_USE_SIMULATOR: ${RACKMON_POLLER_USE_SIMULATOR:-true}
+      RACKMON_SEED_DEMO_DATA: ${RACKMON_SEED_DEMO_DATA:-true}
+      RACKMON_UPDATE_CHECK_ENABLED: "false"
+    depends_on:
+      db:
+        condition: service_healthy
+    expose:
+      - "8000"
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2
+    depends_on:
+      - rackmon
+    ports:
+      - "${HTTP_PORT:-8080}:80"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    restart: unless-stopped
+
+volumes:
+  db_data:
+  caddy_data:
+  caddy_config:

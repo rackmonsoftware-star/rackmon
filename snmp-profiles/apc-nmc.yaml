@@ -1,0 +1,28 @@
+# PowerNet-MIB
+vendor: "APC / Schneider Electric"
+applies_to: "Network Management Card (AP9630/AP9631/AP9640/AP9641) with an environmental probe (AP9335T etc.), and Rack PDUs"
+
+oids:
+  - name: iemStatusProbeCurrentTemp
+    oid: 1.3.6.1.4.1.318.1.1.10.2.3.2.1.4
+    description: "Integrated Environmental Monitor probe temperature."
+  - name: iemStatusProbeName
+    oid: 1.3.6.1.4.1.318.1.1.10.2.3.2.1.2
+    description: "Probe name as configured on the card."
+  - name: iemStatusProbeCurrentHumid
+    oid: 1.3.6.1.4.1.318.1.1.10.2.3.2.1.6
+    description: "Relative humidity, percent."
+  - name: iemStatusProbeTempUnits
+    oid: 1.3.6.1.4.1.318.1.1.10.2.3.2.1.5
+    description: "1 = celsius, 2 = fahrenheit. CHECK THIS."
+
+scaling: "None."
+units: "Whatever the card is configured for. Read iemStatusProbeTempUnits — do not assume celsius."
+
+notes: |
+  This is the profile where the units gotcha bites hardest: an NMC configured for Fahrenheit will
+  return 78 for a perfectly normal 25.5 C room, and a naive threshold of 32 will never fire.
+  Poll iemStatusProbeTempUnits alongside the reading, or set the card to celsius and document it.
+
+  Rack PDUs with newer firmware expose sensors under the rPDU2Sensor tree instead; walk
+  1.3.6.1.4.1.318.1.1.26 if the OIDs above return nothing.

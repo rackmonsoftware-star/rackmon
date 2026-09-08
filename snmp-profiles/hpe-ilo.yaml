@@ -1,0 +1,22 @@
+# CPQHLTH-MIB
+vendor: "HPE"
+applies_to: "ProLiant servers with iLO (4/5/6), SNMP enabled in the iLO agent"
+
+oids:
+  - name: cpqHeTemperatureCelsius
+    oid: 1.3.6.1.4.1.232.6.2.6.8.1.4
+    description: "Current temperature, celsius."
+  - name: cpqHeTemperatureLocale
+    oid: 1.3.6.1.4.1.232.6.2.6.8.1.3
+    description: "Where the sensor is. 3 = system, 5 = cpu, 6 = memory, 9 = ambient/intake."
+  - name: cpqHeTemperatureThreshold
+    oid: 1.3.6.1.4.1.232.6.2.6.8.1.5
+    description: "The threshold HPE considers critical for that sensor."
+
+scaling: "None — whole degrees."
+units: "Celsius."
+
+notes: |
+  Walk cpqHeTemperatureLocale first and find the entry with value 9 (ambient). That is your
+  intake reading; everything else is internal and will alarm for reasons unrelated to the room.
+  Requires the iLO SNMP agent to be enabled — it is off by default on some firmware.

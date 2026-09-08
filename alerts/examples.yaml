@@ -1,0 +1,58 @@
+# Example thermal alerting rules.
+#
+# The thresholds below assume you are measuring INLET temperature at the rack.
+# If you alert on CPU or exhaust temperature these numbers are meaningless.
+#
+# ASHRAE class A1-A2 recommends an 18-27 C inlet range. Check your own hardware
+# vendors' limits; treat these as a starting point.
+
+rules:
+  - name: "Rack inlet warm"
+    metric: temp_inlet
+    condition: "> 28"
+    severity: warning
+    # Heat is a slow physical quantity. Requiring the condition to persist kills
+    # almost every false positive without meaningfully delaying a real alert.
+    hold_down: 3 polls
+    message: "Inlet temperature above 28 C — something changed, look today."
+
+  - name: "Rack inlet critical"
+    metric: temp_inlet
+    condition: "> 32"
+    severity: critical
+    hold_down: 2 polls
+    message: "Inlet temperature above 32 C — cooling problem, act now."
+
+  - name: "Device running hot"
+    metric: temp_cpu
+    condition: "> 70"
+    severity: warning
+    hold_down: 3 polls
+
+  - name: "Device critical"
+    metric: temp_cpu
+    condition: "> 80"
+    severity: critical
+    hold_down: 2 polls
+
+  - name: "Fan stalled"
+    metric: fan_rpm
+    condition: "< 500"
+    severity: critical
+    hold_down: 2 polls
+    message: "Fan below 500 rpm — check before the thermal alert arrives."
+
+# --- Principles worth keeping whatever tool you use -------------------------
+#
+# 1. Hold-down windows. Never fire on a single poll over threshold.
+#
+# 2. Deduplicate by correlation. When cooling fails, twenty devices cross the
+#    line within a minute. That is ONE incident. Twenty pages at 03:00 teaches
+#    people to mute the channel.
+#
+# 3. A missed poll is NOT a recovery. If the device stops answering, that is
+#    missing data. Tools that mark "recovered" when they have actually gone
+#    blind are dangerous precisely when you need them most.
+#
+# 4. Alert on inlet, not on CPU. CPU temperature tells you the chip is hot;
+#    inlet tells you WHY, and tells you sooner.
