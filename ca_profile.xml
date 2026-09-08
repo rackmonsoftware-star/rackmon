@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Maintainer>
+  <Icon>https://rackmon.app/assets/icon-512.png</Icon>
+  <Profile>
+    RackMon is self-hosted rack temperature and SNMP monitoring, built around one job: is anything in my racks getting too hot, and can I prove it later? Live per-U thermal heatmaps, SNMP v2c/v3 polling, alerting with hold-down windows and deduplication that never fakes a recovery, availability and SLA reports, and a public status page - all in a single container. The Community edition is free forever with unlimited devices and metrics, no account and no phone-home.
+  </Profile>
+</Maintainer>
