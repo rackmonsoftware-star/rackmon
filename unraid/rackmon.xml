@@ -6,7 +6,7 @@
   <Network>bridge</Network>
   <Shell>sh</Shell>
   <Privileged>false</Privileged>
-  <Support>https://github.com/rackmon/rackmon/issues</Support>
+  <Support>https://github.com/rackmonsoftware-star/rackmon/issues</Support>
   <Project>https://rackmon.app</Project>
   <Overview>
     Self-hosted rack temperature and SNMP monitoring. Live per-U thermal heatmaps,
