@@ -11,15 +11,15 @@ with an Ingress, TLS, and a HorizontalPodAutoscaler for the API tier.
 - A Kubernetes cluster and `kubectl`/`helm` configured.
 - A built RackMon image pushed to a registry (see `backend/Dockerfile`):
   ```
-  docker build -f backend/Dockerfile -t ghcr.io/your-org/rackmon:1.0.0 .
-  docker push ghcr.io/your-org/rackmon:1.0.0
+  docker build -f backend/Dockerfile -t ghcr.io/your-org/rackmon:1.1.0 .
+  docker push ghcr.io/your-org/rackmon:1.1.0
   ```
 
 ## Install
 ```bash
 helm install rackmon deploy/helm/rackmon \
   --set image.repository=ghcr.io/your-org/rackmon \
-  --set image.tag=1.0.0 \
+  --set image.tag=1.1.0 \
   --set secrets.jwtSecret=$(openssl rand -hex 32) \
   --set secrets.masterKey=$(openssl rand -hex 32) \
   --set secrets.dbPassword=$(openssl rand -hex 24) \

@@ -22,8 +22,10 @@
   <Config Name="WebUI Port" Target="8000" Default="8000" Mode="tcp" Type="Port" Display="always" Required="true">8000</Config>
   <Config Name="Data" Target="/data" Default="/mnt/user/appdata/rackmon" Mode="rw" Type="Path" Display="always" Required="true">/mnt/user/appdata/rackmon</Config>
   <Config Name="Database URL" Target="RACKMON_DATABASE_URL" Default="sqlite:////data/rackmon.db" Type="Variable" Display="advanced" Required="true">sqlite:////data/rackmon.db</Config>
-  <Config Name="JWT Secret" Target="RACKMON_JWT_SECRET" Default="" Type="Variable" Display="always" Required="true" Mask="true">CHANGE-ME-openssl-rand-hex-32</Config>
-  <Config Name="Master Key (encrypts stored credentials)" Target="RACKMON_MASTER_KEY" Default="" Type="Variable" Display="always" Required="true" Mask="true">CHANGE-ME-openssl-rand-hex-32</Config>
+  <Config Name="JWT Secret - GENERATE ONE: openssl rand -hex 32" Target="RACKMON_JWT_SECRET" Default="" Type="Variable" Display="always" Required="true" Mask="true"></Config>
+  <Config Name="Master Key (encrypts stored credentials) - GENERATE ONE: openssl rand -hex 32" Target="RACKMON_MASTER_KEY" Default="" Type="Variable" Display="always" Required="true" Mask="true"></Config>
+  <Config Name="Admin password (first login) - CHOOSE YOUR OWN" Target="RACKMON_ADMIN_PASSWORD" Default="" Type="Variable" Display="always" Required="true" Mask="true"></Config>
+  <Config Name="Environment" Target="RACKMON_ENVIRONMENT" Default="production" Type="Variable" Display="advanced" Required="true">production</Config>
   <Config Name="Use simulator (fake telemetry to look around)" Target="RACKMON_POLLER_USE_SIMULATOR" Default="true" Type="Variable" Display="always" Required="false">true</Config>
   <Config Name="Seed demo data" Target="RACKMON_SEED_DEMO_DATA" Default="true" Type="Variable" Display="advanced" Required="false">true</Config>
   <Config Name="Update check (off = no outbound traffic)" Target="RACKMON_UPDATE_CHECK_ENABLED" Default="false" Type="Variable" Display="advanced" Required="false">false</Config>
