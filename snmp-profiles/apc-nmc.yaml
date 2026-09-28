@@ -24,5 +24,9 @@ notes: |
   return 78 for a perfectly normal 25.5 C room, and a naive threshold of 32 will never fire.
   Poll iemStatusProbeTempUnits alongside the reading, or set the card to celsius and document it.
 
-  Rack PDUs with newer firmware expose sensors under the rPDU2Sensor tree instead; walk
-  1.3.6.1.4.1.318.1.1.26 if the OIDs above return nothing.
+  Rack PDUs with newer firmware expose sensors under the rPDU2Sensor tree instead. There the
+  celsius reading is rPDU2SensorTempHumidityStatusTempC, 1.3.6.1.4.1.318.1.1.26.10.2.2.1.8, in
+  TENTHS of a degree (243 = 24.3 C). The column next door, 7, is the same sensor in Fahrenheit
+  and also in tenths — polling it by mistake makes a 24 C rack read 75 and no celsius threshold
+  will ever fire. rPDULoadStatusLoad (1.3.6.1.4.1.318.1.1.12.2.3.1.1.2) is likewise in tenths of
+  an amp, and rPDUIdent 15 is the line voltage while 16 is power in watts.
