@@ -2,6 +2,11 @@
 
 The OIDs that actually return temperature, per vendor — with the gotchas that make them wrong.
 
+> **Reading this in a browser?** The same reference, laid out with tables and the scaling
+> and unit traps called out per vendor, is at
+> **<https://rackmon.app/snmp-temperature-oids.html>**. The YAML files here are the
+> machine-readable version.
+
 These are **reference data**, not config files consumed by RackMon. Use them with RackMon,
 with Zabbix, with a shell script, with whatever you like.
 

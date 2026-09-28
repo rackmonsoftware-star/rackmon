@@ -47,7 +47,9 @@ For anything beyond a single node, use the compose file below.
 
 ## The SNMP temperature reference
 
-This is the part worth bookmarking even if you never run RackMon.
+This is the part worth bookmarking even if you never run RackMon — and if you would rather read
+it as a page than as YAML, it lives at
+**[rackmon.app/snmp-temperature-oids.html](https://rackmon.app/snmp-temperature-oids.html)**.
 
 Nearly every guide about rack temperature says "poll your vendor's OID" and then doesn't tell you
 which one. [`snmp-profiles/`](snmp-profiles/) has them, per vendor, with the two things that
