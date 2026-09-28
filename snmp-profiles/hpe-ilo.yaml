@@ -5,18 +5,24 @@ applies_to: "ProLiant servers with iLO (4/5/6), SNMP enabled in the iLO agent"
 oids:
   - name: cpqHeTemperatureCelsius
     oid: 1.3.6.1.4.1.232.6.2.6.8.1.4
-    description: "Current temperature, celsius."
+    description: "Current temperature, whole degrees celsius. Returns -1 when it cannot be read."
   - name: cpqHeTemperatureLocale
     oid: 1.3.6.1.4.1.232.6.2.6.8.1.3
-    description: "Where the sensor is. 3 = system, 5 = cpu, 6 = memory, 9 = ambient/intake."
+    description: "Where the sensor is: 3 = system, 4 = systemBoard, 5 = ioBoard, 6 = cpu, 7 = memory, 11 = ambient/intake."
+  - name: cpqHeTemperatureCondition
+    oid: 1.3.6.1.4.1.232.6.2.6.8.1.6
+    description: "Sensor condition: 1 = other, 2 = ok, 3 = degraded, 4 = failed. Only trust a reading when this is 2."
   - name: cpqHeTemperatureThreshold
     oid: 1.3.6.1.4.1.232.6.2.6.8.1.5
-    description: "The threshold HPE considers critical for that sensor."
+    description: "HPE's own SHUTDOWN temperature for that sensor — where the server powers itself off. Not an alert level."
 
+indexing: "Two components: <chassis>.<sensor>, normally 1.1, 1.2, 1.3 ... Not a single index."
 scaling: "None — whole degrees."
 units: "Celsius."
 
 notes: |
-  Walk cpqHeTemperatureLocale first and find the entry with value 9 (ambient). That is your
+  Walk cpqHeTemperatureLocale first and find the entry with value 11 (ambient). That is your
   intake reading; everything else is internal and will alarm for reasons unrelated to the room.
+  On ProLiant Gen8 and later that is usually sensor 1 ("01-Inlet Ambient"), but confirm it
+  instead of assuming — the numbering moves between models.
   Requires the iLO SNMP agent to be enabled — it is off by default on some firmware.
