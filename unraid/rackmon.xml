@@ -12,8 +12,9 @@
     Self-hosted rack temperature and SNMP monitoring. Live per-U thermal heatmaps,
     SNMP v2c/v3 polling, alerting with hold-down windows and deduplication,
     availability/SLA reports and a public status page - in a single container.
-    No account, no phone-home. The Community edition is free forever with
-    unlimited devices and metrics.
+    No account, no phone-home, no device limit. Free and open source (MIT),
+    with every feature included - SSO, LDAP, SLA reports, the public status
+    page and white-label branding. Source: github.com/rackmonsoftware-star/rackmon
   </Overview>
   <Category>Tools: Network:Management Status:Stable</Category>
   <WebUI>http://[IP]:[PORT:8000]/</WebUI>

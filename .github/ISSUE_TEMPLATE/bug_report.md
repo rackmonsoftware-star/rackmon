@@ -22,4 +22,4 @@ labels: bug
 docker logs rackmon --tail 50
 ```
 
-<!-- Please do NOT paste licence keys, SNMP community strings or passwords. -->
+<!-- Please do NOT paste SNMP community strings, passwords or API keys. -->

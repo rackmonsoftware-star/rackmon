@@ -1,11 +1,13 @@
-# RackMon — production single-node stack.
+# RackMon — single-node deployment.
 #
-#   1. cp .env.example .env   &&   set the two secrets
-#   2. docker compose up -d
-#   3. open http://localhost:8080
+#   1. cp .env.example .env   &&   edit the secrets
+#   2. docker compose up --build
+#   3. open http://localhost:8080   (sign in with the admin email and password
+#      you set in .env — there is no default account in this stack)
 #
-# Caddy (TLS/edge) -> rackmon (API + UI + poller) -> TimescaleDB.
-# Pulls the published image; nothing is built locally.
+# Topology: Caddy (edge) -> api (FastAPI, serves SPA + API, runs poller in-proc)
+#           -> TimescaleDB.  Redis is provisioned for the documented multi-worker
+#           scale-out path; the MVP does not require it.
 
 services:
   db:
@@ -16,6 +18,7 @@ services:
       POSTGRES_DB: rackmon
     volumes:
       - db_data:/var/lib/postgresql/data
+      - ./deploy/timescale/10-extension.sql:/docker-entrypoint-initdb.d/10-extension.sql:ro
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U rackmon -d rackmon"]
       interval: 5s
@@ -23,19 +26,30 @@ services:
       retries: 20
     restart: unless-stopped
 
-  rackmon:
-    image: rackmon/rackmon:latest
+  api:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
     environment:
       RACKMON_ENVIRONMENT: production
       RACKMON_DATABASE_URL: postgresql+psycopg2://rackmon:${DB_PASSWORD:-rackmon}@db:5432/rackmon
+      # Required — generate with `openssl rand -hex 32`.
       RACKMON_JWT_SECRET: ${RACKMON_JWT_SECRET:?set RACKMON_JWT_SECRET in .env}
       RACKMON_MASTER_KEY: ${RACKMON_MASTER_KEY:?set RACKMON_MASTER_KEY in .env}
-      RACKMON_PUBLIC_BASE_URL: ${RACKMON_PUBLIC_BASE_URL:-http://localhost:8080}
+      # Tambien obligatorios, y por el mismo motivo: este fichero fija
+      # RACKMON_ENVIRONMENT=production, y en produccion RackMon se NIEGA a
+      # arrancar mientras la contrasena del administrador sea la de fabrica. Sin
+      # reenviarlas aqui, ponerlas en el .env no servia de nada —Compose solo usa
+      # el .env para sustituir ${...} en este fichero, no lo inyecta en el
+      # contenedor— y `docker compose up` moria en bucle de reinicio.
+      RACKMON_ADMIN_EMAIL: ${RACKMON_ADMIN_EMAIL:?set RACKMON_ADMIN_EMAIL in .env}
+      RACKMON_ADMIN_PASSWORD: ${RACKMON_ADMIN_PASSWORD:?set RACKMON_ADMIN_PASSWORD in .env}
+      # Same-origin behind Caddy, so CORS is effectively unused; scoped anyway.
       RACKMON_CORS_ORIGINS: '["${RACKMON_PUBLIC_BASE_URL:-http://localhost:8080}"]'
+      RACKMON_PUBLIC_BASE_URL: ${RACKMON_PUBLIC_BASE_URL:-http://localhost:8080}
       RACKMON_POLLER_ENABLED: "true"
       RACKMON_POLLER_USE_SIMULATOR: ${RACKMON_POLLER_USE_SIMULATOR:-true}
       RACKMON_SEED_DEMO_DATA: ${RACKMON_SEED_DEMO_DATA:-true}
-      RACKMON_UPDATE_CHECK_ENABLED: "false"
     depends_on:
       db:
         condition: service_healthy
@@ -46,13 +60,20 @@ services:
   caddy:
     image: caddy:2
     depends_on:
-      - rackmon
+      - api
     ports:
       - "${HTTP_PORT:-8080}:80"
     volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
       - caddy_config:/config
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    # Provisioned for the horizontal-scale path (cross-worker WebSocket fan-out,
+    # spec §6/§14). The single-node MVP uses an in-process pub/sub hub and does
+    # not connect to Redis; remove this service if you don't need it.
     restart: unless-stopped
 
 volumes:

@@ -1,0 +1,47 @@
+# Python
+**/__pycache__/
+**/*.pyc
+backend/.venv/
+backend/.pytest_cache/
+backend/htmlcov/
+backend/.coverage
+**/*.db
+
+# Node / build artifacts
+frontend/node_modules/
+frontend/dist/
+backend/app/static/
+
+# Local env & tooling
+.env
+.git/
+.gitignore
+**/.DS_Store
+
+# License signing keys — never ship the vendor private key in the image.
+**/*.pem
+**/vendor_private_key*
+backend/scripts/licensing/
+
+# El banco de pruebas NO viaja en la imagen. Hasta la 1.2.8 si viajaba, y con el
+# iba una licencia Pro perpetua firmada con la clave real del vendedor: bastaba
+# un `cat /app/tests/conftest.py` dentro del contenedor recien descargado para
+# tener todas las funciones de pago gratis y para siempre. Ademas, el codigo de
+# las pruebas no pinta nada en produccion y solo abulta la imagen.
+backend/tests/
+TESTING.md
+
+# Nada de esto entra en la imagen (ningun COPY lo recoge), pero SI viaja al
+# demonio como contexto de construccion si esta en el arbol local. El sitio web
+# lleva dentro la clave de IndexNow y el cajero es infraestructura de cobro:
+# no tienen por que pasar ni de camino. Y recortar el contexto acelera el build.
+website/
+licensing_server/
+frontend/audit-*
+frontend/e2e/
+frontend/*.log
+frontend/*.mjs
+frontend/test-results/
+frontend/playwright-report/
+*.bak
+*.bak-*

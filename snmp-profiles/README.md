@@ -25,7 +25,7 @@ only then wire it into alerting. **A threshold built on a mis-scaled reading is 
 monitoring, because you'll trust it.**
 
 OIDs also move between models and firmware revisions. If one here is wrong for your gear,
-please [open an issue](../../issues) — that's exactly the knowledge worth collecting.
+please [open an issue](https://github.com/rackmonsoftware-star/rackmon/issues) — that's exactly the knowledge worth collecting.
 
 ## Start with the standard
 

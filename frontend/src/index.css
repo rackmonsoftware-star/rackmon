@@ -1,0 +1,135 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* --- Design tokens ------------------------------------------------------- */
+:root,
+.dark {
+  --bg: #0b0f14;
+  --surface: #131a22;
+  --surface-2: #1a222c;
+  --border: #232d38;
+  --ink: #e6edf3;
+  --muted: #aab6c4;
+}
+
+.light {
+  --bg: #f5f7fa;
+  --surface: #ffffff;
+  --surface-2: #eef2f6;
+  --border: #d7dee6;
+  --ink: #0f1720;
+  --muted: #495663;
+}
+
+/* Accent as RGB channels (theme-independent); white-label branding overrides
+   --accent-rgb at runtime. Default is the RackMon cyan (#22D3EE). */
+:root {
+  --accent-rgb: 34 211 238;
+  --accent-ink: #04222a; /* text/icon color ON the accent; recomputed for white-label accents */
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: Inter, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Subtle grid backdrop evoking a control panel. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background-image:
+    linear-gradient(var(--border) 1px, transparent 1px),
+    linear-gradient(90deg, var(--border) 1px, transparent 1px);
+  background-size: 48px 48px;
+  opacity: 0.05;
+  z-index: 0;
+}
+
+#root {
+  position: relative;
+  z-index: 1;
+}
+
+/* --- Reusable component classes ------------------------------------------ */
+@layer components {
+  .panel {
+    @apply rounded-lg border border-border bg-surface shadow-panel;
+  }
+  .panel-2 {
+    @apply rounded-lg border border-border bg-surface2;
+  }
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-md px-3 py-2 text-sm
+           font-medium transition-colors disabled:opacity-50 disabled:pointer-events-none;
+  }
+  /* Solid, saturated accent fill with dark ink so primary CTAs read as
+     interactive (>=4.5:1) in BOTH themes — never the ghosted pale-on-pale look,
+     which is reserved for genuine disabled state. */
+  .btn-primary {
+    @apply btn bg-accent text-[color:var(--accent-ink)] border border-accent font-semibold shadow-sm
+           hover:brightness-110;
+  }
+  .btn-ghost {
+    @apply btn text-muted hover:text-ink hover:bg-surface2 border border-transparent;
+  }
+  /* Bordered secondary button: reads as a control (not a link) next to a
+     primary action, without competing with it. */
+  .btn-secondary {
+    @apply btn border border-border bg-surface2 text-ink hover:border-accent/50;
+  }
+  .btn-danger {
+    @apply btn bg-crit/10 text-crit border border-crit/30 hover:bg-crit/20;
+  }
+  .input {
+    @apply w-full rounded-md border border-border bg-surface2 px-3 py-2 text-sm text-ink
+           placeholder:text-muted focus:outline-none focus:ring-2 focus:ring-accent/40;
+  }
+  .label {
+    @apply block text-xs font-medium uppercase tracking-wide text-muted mb-1;
+  }
+  .mono {
+    font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    font-variant-numeric: tabular-nums;
+  }
+  .chip {
+    @apply inline-flex items-center gap-1 rounded-full border border-border bg-surface2
+           px-2 py-0.5 text-xs text-muted;
+  }
+}
+
+/* Thin custom scrollbars to match the panel aesthetic. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+*::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+*::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 8px;
+}
+
+/* Horizontally scrollable containers (e.g. the header nav on small screens)
+   that must not push the page wide or show a scrollbar. */
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}

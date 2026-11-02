@@ -1,3 +1,71 @@
+# --- Secrets ---
 .env
-*.log
+# License signing keys — the vendor PRIVATE key must never be committed or shipped.
+*.pem
+*private*.key
+vendor_private_key*
+
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+venv/
+.pytest_cache/
+.coverage
+htmlcov/
+*.db
+*.sqlite3
+
+# --- Node / frontend ---
+node_modules/
+frontend/dist/
+# Built SPA is generated into the backend; don't track it.
+backend/app/static/
+
+# --- Editor / OS ---
 .DS_Store
+.idea/
+.vscode/
+*.swp
+
+# Playwright E2E artifacts
+frontend/e2e/screenshots/
+frontend/e2e/report/
+frontend/test-results/
+frontend/playwright-report/
+
+# --- Lo que no sale de esta maquina ---------------------------------------
+#
+# El cajero: el servicio que firmaba y servia las licencias de pago. El producto
+# es gratis desde la 1.3.0 y esto se retira, pero mientras siga en marcha es
+# infraestructura de cobro y no tiene nada que hacer en un repositorio publico.
+licensing_server/
+
+# La web de rackmon.app. Se despliega aparte y no forma parte del producto. Lleva
+# dentro la clave de IndexNow (un fichero con nombre de hash en la raiz), que
+# permite a quien la tenga enviar cambios de URL del dominio a Bing y Yandex.
+website/
+
+# Capturas y registros de las auditorias de navegador que se hicieron durante el
+# desarrollo. Son ~290 ficheros: mas de la mitad de todo frontend/. No le sirven
+# a nadie que clone esto y convierten el arbol en un vertedero.
+frontend/audit-*
+frontend/*.log
+
+# Copias de seguridad hechas a mano al editar.
+*.bak
+*.bak-*
+
+# Scripts sueltos de Playwright que se escribieron para comprobar una cosa
+# concreta un dia concreto: capturas para la web, repasos de accesibilidad,
+# verificaciones de un arreglo. Hicieron su trabajo y no se lo hacen a nadie mas.
+# Las pruebas de extremo a extremo que SI se mantienen viven en frontend/e2e/.
+frontend/*.mjs
+frontend/e2e/report/
+frontend/e2e/screenshots/
+
+# Las herramientas con las que el vendedor firmaba licencias de pago. El producto
+# es gratis y completo desde la 1.3.0: no hay licencias que emitir, y publicar la
+# maquinaria de un modelo de negocio retirado solo confunde a quien llega.
+backend/scripts/licensing/

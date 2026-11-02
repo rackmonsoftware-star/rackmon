@@ -1,0 +1,17 @@
+# Local / demo config: serve everything over :80 and proxy to the API.
+# `reverse_proxy` transparently upgrades WebSocket connections (/api/v1/stream).
+#
+# For production with a real domain and automatic HTTPS, replace `:80` with your
+# hostname, e.g.:
+#
+#   rackmon.example.com {
+#       encode zstd gzip
+#       reverse_proxy api:8000
+#   }
+#
+# Caddy will then provision and renew Let's Encrypt certificates automatically.
+
+:80 {
+	encode zstd gzip
+	reverse_proxy api:8000
+}

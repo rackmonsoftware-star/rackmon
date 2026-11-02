@@ -1,0 +1,13 @@
+# Los finales de linea se normalizan a LF en el repositorio, pase lo que pase en
+# la maquina de quien escribe. Sin esto, un clon hecho en Windows con la
+# configuracion por defecto (core.autocrlf=true) convierte todo a CRLF, y un
+# fichero .sh o un Dockerfile con CRLF no arranca en Linux: la primera linea
+# queda como "#!/bin/sh" y el interprete no existe.
+* text=auto eol=lf
+
+# Binarios: que git no los toque ni intente adivinar.
+*.png binary
+*.jpg binary
+*.ico binary
+*.woff2 binary
+*.pdf binary

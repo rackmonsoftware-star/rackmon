@@ -1,41 +1,43 @@
 # Licensing, stated plainly
 
-I'd rather be upfront than have you discover this three files in.
+**RackMon is free and open source under the [MIT licence](LICENSE).** One edition,
+every feature, no key — including for commercial use. That is the whole answer; the
+rest of this page is history and detail.
 
-## This repository — MIT
+## What you can do
 
-Everything in this repo (compose files, Helm chart, Unraid template, SNMP OID reference,
-example alert rules, docs) is MIT-licensed. Fork it, change it, use it with something else
-entirely. The OID reference in particular is meant to be useful whether or not you ever run
-RackMon.
+Run it anywhere, for anything, on as many instances as you like, with no device
+limit. Read the source, fork it, change it, redistribute it. Charge for what you
+build with it, including monitoring you operate for your own clients. Put your own
+name, logo and colour on it — white-label branding is a feature of the product, not
+a paid add-on. The only condition is the usual MIT one: keep the copyright notice
+with the copies you distribute.
 
-## RackMon itself — source-available, not open source
+What MIT does not give you: a warranty, a liability guarantee, or a contractual
+response time. Issues here get read and answered, usually quickly, but nothing
+promises an SLA. If you need one in writing, say so and we can talk about it.
 
-The application ships as a container image (`rackmon/rackmon`). **The source is not public.**
-If a fully open-source stack is a hard requirement for you, that's a completely reasonable
-position and RackMon isn't your tool — [LibreNMS](https://www.librenms.org/) and
-[Zabbix](https://www.zabbix.com/) are genuinely good and genuinely open.
+## This file used to say the opposite
 
-## What's free and what isn't
+Until 1 November 2026 RackMon was open-core. The monitor was free, the source was
+**not** public, and five features — SSO, LDAP, SLA reports, the public status page
+and white-label branding — needed a paid per-instance key.
 
-**Community — free forever.** Not a trial, not time-limited, not device-limited:
+That is retired, and the reason is worth being straight about: in several months the
+paid edition got **twenty-two installations and zero sales**. A product nobody runs
+is not fixed by charging less for it. So the source is public, everything is on, and
+the goal is reach rather than revenue.
 
-- Unlimited devices and unlimited metrics
-- Per-U rack thermal heatmaps
-- SNMP v2c and v3 (authPriv)
-- Full metric history and CSV export
-- Alerting with hold-down windows, deduplication and escalation
-- No account required, no phone-home, no telemetry
+If you still have `RACKMON_LICENSE_KEY` set in a `.env`, leave it — it is read and
+ignored, so nothing breaks on upgrade. If you ever paid for a key, email
+<rackmon.software@gmail.com> and it will be refunded. Nobody did, so that sentence
+exists only for completeness.
 
-**Pro — EUR 390, one-time, per instance.** For running this on behalf of someone else:
+## Third-party code
 
-- White-label public status page
-- Availability / SLA reports as PDF
-- RBAC, LDAP/AD, OIDC SSO
-- Priority support
+RackMon stands on open source: FastAPI, SQLAlchemy, pysnmp, React, Vite and Tailwind
+among others. Their own licences — permissive, and listed in `backend/requirements.txt`
+and `frontend/package.json` — apply to those parts. MIT applies to RackMon's own code.
 
-The licence is an Ed25519-signed file **verified offline**. There is no licence server to call
-home to, and nothing stops working if this project or its author disappears. That was a
-deliberate design choice: self-hosted should mean self-hosted.
-
-No subscription. No per-sensor pricing. No "contact sales".
+Questions: [open an issue](https://github.com/rackmonsoftware-star/rackmon/issues) or
+email <rackmon.software@gmail.com>.
