@@ -98,6 +98,16 @@ def _save_manifest(data: dict) -> None:
     )
 
 
+def announcement_id(today: str, title: str, limit: int = 32) -> str:
+    """Build the announcement id every installation stores to remember it was seen.
+
+    The trim happens *after* the cut, not before. Trimming first and cutting
+    second lets the cut land on a separator, which is how the 1.3.0 announcement
+    ended up identified as ``2026-11-02-rackmon-is-free-and-open-source-``.
+    """
+    return f"{today}-{re.sub(r'[^a-z0-9]+', '-', title.lower())[:limit].strip('-')}"
+
+
 def main() -> None:
     ap = argparse.ArgumentParser(description="Cut a RackMon release / publish an announcement.")
     ap.add_argument("version", nargs="?", help="new version, e.g. 1.2.0")
@@ -139,7 +149,7 @@ def main() -> None:
         manifest["announcement"] = None
     elif args.announce:
         manifest["announcement"] = {
-            "id": f"{today}-{re.sub(r'[^a-z0-9]+', '-', args.announce.lower()).strip('-')[:32]}",
+            "id": announcement_id(today, args.announce),
             "level": args.announce_level,
             "title": args.announce,
             "body": args.announce_body,
