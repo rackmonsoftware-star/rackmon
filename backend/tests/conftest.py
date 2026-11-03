@@ -47,6 +47,46 @@ os.environ.update(
     RACKMON_VIEWER_PASSWORD="viewer-de-pruebas-8f21c",
 )
 
+# --- Algo que servir en app/static, antes de importar la aplicacion ---------- #
+#
+# La SPA construida vive en `backend/app/static` y esta en el .gitignore: es un
+# artefacto del build del frontend, no codigo. En un clon limpio —el de
+# cualquiera que contribuya, y el de CI, donde el trabajo del backend no
+# construye el frontend— ese directorio no existe.
+#
+# `app/main.py` registra las rutas de la SPA **al importarse**, y solo si
+# encuentra un index.html. Sin el, tres pruebas fallan, y dos son el control
+# positivo de la fuga de ficheros de la 1.2.10: comprueban que, ademas de cerrar
+# la salida del directorio, los ficheros de dentro se siguen sirviendo. Saltarlas
+# habria sido lo comodo, pero entonces la prueba de seguridad deja de correr
+# justo donde mas falta hace.
+#
+# Se crea un index.html minimo solo si no hay ninguno, y se borra al salir. Si la
+# SPA ya esta construida, aqui no se toca nada.
+import pathlib  # noqa: E402
+
+_STATIC = pathlib.Path(__file__).resolve().parent.parent / "app" / "static"
+_INDICE = _STATIC / "index.html"
+_INDICE_ES_NUESTRO = not _INDICE.exists()
+_DIR_ES_NUESTRO = not _STATIC.exists()
+if _INDICE_ES_NUESTRO:
+    _STATIC.mkdir(parents=True, exist_ok=True)
+    _INDICE.write_text(
+        "<!doctype html><title>RackMon</title><div id=root></div>", encoding="utf-8"
+    )
+
+
+@atexit.register
+def _quitar_la_spa_minima() -> None:
+    if _INDICE_ES_NUESTRO:
+        _INDICE.unlink(missing_ok=True)
+    if _DIR_ES_NUESTRO:
+        try:
+            _STATIC.rmdir()
+        except OSError:
+            pass
+
+
 import random  # noqa: E402
 
 import pytest  # noqa: E402

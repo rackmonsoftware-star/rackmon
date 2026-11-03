@@ -13,90 +13,108 @@ Lo que lo hacía difícil de ver: ponerla en el `.env` no arreglaba nada. Compos
 usa el `.env` para sustituir `${...}` dentro del propio fichero, no lo inyecta en
 el contenedor; y `.env` está en el `.dockerignore`, así que pydantic tampoco lo
 encontraba dentro de la imagen. La única salida era editar el compose, y el
-README no lo pedía.
+README no lo pedía. El chart de Helm tenía el mismo agujero, lo que además hacía
+fallar el trabajo de Kubernetes en cada ejecución del CI.
 
-La prueba lee el compose de verdad y comprueba que todo servicio que se declare
-en producción reenvíe las variables que el guardián audita. No depende de la
-lista: la saca de `config.py`, así que añadir un secreto nuevo al guardián hace
-fallar esto hasta que el compose lo reenvíe también.
+La lista de secretos no está escrita aquí: se lee de `config.py`, así que añadir
+uno nuevo al guardián hace fallar esto hasta que el compose y el chart lo
+reenvíen también.
+
+Sin PyYAML a propósito: no es dependencia del proyecto, y una prueba que se salta
+sola en CI —que es justo donde haría falta— no protege de nada.
 """
 from __future__ import annotations
 
 import os
 import re
 
-import pytest
-
-yaml = pytest.importorskip("yaml")
-
 RAIZ = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
 COMPOSES = ("docker-compose.yml", "docker-compose.sqlite.yml")
 
 
+def _lee(*partes: str) -> str | None:
+    ruta = os.path.join(RAIZ, *partes)
+    if not os.path.exists(ruta):
+        return None
+    with open(ruta, encoding="utf-8") as fh:
+        return fh.read()
+
+
 def _vigiladas() -> set[str]:
     """Los nombres que `production_safety_check` audita, leídos del fuente."""
-    ruta = os.path.join(RAIZ, "backend", "app", "config.py")
-    with open(ruta, encoding="utf-8") as fh:
-        texto = fh.read()
-    m = re.search(r'for name in \(([^)]*)\):', texto, re.S)
+    texto = _lee("backend", "app", "config.py")
+    assert texto, "no encuentro config.py"
+    m = re.search(r"for name in \(([^)]*)\):", texto, re.S)
     assert m, "no encuentro la lista de secretos que audita el guardian"
-    return {"RACKMON_" + n.upper() for n in re.findall(r'"([a-z_]+)"', m.group(1))}
+    nombres = {"RACKMON_" + n.upper() for n in re.findall(r'"([a-z_]+)"', m.group(1))}
+    assert nombres, "la lista de secretos vigilados salio vacia"
+    return nombres
 
 
-def _servicios(fichero: str):
-    ruta = os.path.join(RAIZ, fichero)
-    if not os.path.exists(ruta):
-        return {}
-    with open(ruta, encoding="utf-8") as fh:
-        datos = yaml.safe_load(fh)
-    return (datos or {}).get("services", {}) or {}
+def _declara_produccion(texto: str) -> bool:
+    return bool(re.search(r"^\s*(RACKMON_ENVIRONMENT|environment):\s*[\"']?production", texto, re.M))
 
 
-@pytest.mark.parametrize("fichero", COMPOSES)
-def test_en_produccion_el_compose_pasa_todo_lo_que_el_guardian_exige(fichero):
-    vigiladas = _vigiladas()
-    assert vigiladas, "la lista de secretos vigilados salio vacia"
-
-    for nombre, servicio in _servicios(fichero).items():
-        entorno = (servicio or {}).get("environment") or {}
-        if isinstance(entorno, list):  # forma "CLAVE=valor"
-            entorno = dict(e.split("=", 1) for e in entorno if "=" in e)
-        if str(entorno.get("RACKMON_ENVIRONMENT", "")).strip() != "production":
+def test_en_produccion_el_compose_pasa_todo_lo_que_el_guardian_exige():
+    for fichero in COMPOSES:
+        texto = _lee(fichero)
+        if texto is None or not _declara_produccion(texto):
             continue
-        faltan = sorted(v for v in vigiladas if v not in entorno)
+        faltan = sorted(v for v in _vigiladas() if not re.search(rf"^\s*{v}:", texto, re.M))
         assert not faltan, (
-            f"{fichero}: el servicio {nombre!r} declara RACKMON_ENVIRONMENT=production "
-            f"pero no reenvia {', '.join(faltan)}. En produccion RackMon se niega a "
-            "arrancar con el valor de fabrica, asi que `docker compose up` no levanta "
-            "y ponerlas en el .env no sirve: Compose no lo inyecta en el contenedor."
+            f"{fichero} declara RACKMON_ENVIRONMENT=production pero no reenvia "
+            f"{', '.join(faltan)}. En produccion RackMon se niega a arrancar con el "
+            "valor de fabrica, asi que `docker compose up` no levanta — y ponerlas en "
+            "el .env no sirve, porque Compose no lo inyecta en el contenedor."
         )
 
 
-@pytest.mark.parametrize("fichero", COMPOSES)
-def test_los_secretos_obligatorios_fallan_claro_si_faltan(fichero):
+def test_los_secretos_obligatorios_fallan_claro_si_faltan():
     """`${VAR:?...}` para que Compose diga cuál falta en vez de arrancar roto."""
-    ruta = os.path.join(RAIZ, fichero)
-    if not os.path.exists(ruta):
-        pytest.skip(f"{fichero} no esta en este arbol")
-    with open(ruta, encoding="utf-8") as fh:
-        crudo = fh.read()
-    for var in _vigiladas():
-        if f"{var}:" not in crudo:
+    for fichero in COMPOSES:
+        texto = _lee(fichero)
+        if texto is None:
             continue
-        linea = next(l for l in crudo.splitlines() if l.strip().startswith(f"{var}:"))
-        assert ":?" in linea or ":-" in linea or "${" not in linea, (
-            f"{fichero}: {var} se interpola sin valor por defecto ni mensaje de error; "
-            "si el operador la olvida, el contenedor arranca con la cadena vacia"
+        for var in _vigiladas():
+            for linea in texto.splitlines():
+                if not linea.strip().startswith(f"{var}:") or "${" not in linea:
+                    continue
+                assert ":?" in linea or ":-" in linea, (
+                    f"{fichero}: {var} se interpola sin valor por defecto ni mensaje "
+                    "de error; si el operador la olvida, el contenedor arranca con la "
+                    "cadena vacia en vez de decirlo"
+                )
+
+
+def test_el_chart_de_helm_pasa_lo_mismo_al_pod():
+    """El mismo fallo, en el otro camino de despliegue — y en el CI."""
+    valores = _lee("deploy", "helm", "rackmon", "values.yaml")
+    plantilla = _lee("deploy", "helm", "rackmon", "templates", "config.yaml")
+    api = _lee("deploy", "helm", "rackmon", "templates", "api.yaml")
+    if valores is None or plantilla is None or api is None:
+        return  # el chart no esta en este arbol
+    if not _declara_produccion(valores):
+        return
+
+    for var in sorted(_vigiladas()):
+        assert var in plantilla, (
+            f"el chart despliega en produccion pero su Secret no define {var}: "
+            "el pod no arrancaria nunca y `helm install --wait` agotaria su tiempo "
+            "sin explicar por que"
+        )
+        assert var in api, (
+            f"{var} esta en el Secret pero el contenedor no lo lee: api.yaml nombra "
+            "las claves una a una con secretKeyRef, asi que anadirla al Secret no basta"
         )
 
 
 def test_el_readme_no_promete_una_cuenta_que_el_compose_no_crea():
     """La tabla de credenciales vale para el arranque local, no para el compose."""
-    with open(os.path.join(RAIZ, "README.md"), encoding="utf-8") as fh:
-        readme = fh.read()
+    readme = _lee("README.md")
+    assert readme, "no encuentro el README"
     inicio = readme.find("## Quick start")
-    fin = readme.find("##", inicio + 5)
-    arranque = readme[inicio:fin]
+    assert inicio != -1, "el README ya no tiene seccion de arranque rapido"
+    arranque = readme[inicio:readme.find("\n## ", inicio + 5)]
     assert "demo account below" not in arranque, (
         "el arranque rapido manda entrar con la cuenta de la tabla de credenciales, "
         "y el compose corre en produccion: esa cuenta no se crea nunca por esa via"
@@ -105,38 +123,3 @@ def test_el_readme_no_promete_una_cuenta_que_el_compose_no_crea():
         "el arranque rapido no dice que hay que fijar RACKMON_ADMIN_PASSWORD, "
         "sin la cual `docker compose up` no levanta"
     )
-
-
-def test_el_chart_de_helm_pasa_lo_mismo_al_pod():
-    """El mismo fallo, en el otro camino de despliegue.
-
-    `deploy/helm/rackmon/values.yaml` fija `config.environment: production`, y
-    el Secret solo llevaba JWT_SECRET, MASTER_KEY y DB_PASSWORD. El pod se
-    negaba a arrancar por la contrasena de administrador de fabrica, y
-    `helm install --wait` agotaba sus cinco minutos sin explicar nada — incluido
-    el trabajo de Kubernetes del CI, que corre en cada push.
-    """
-    base = os.path.join(RAIZ, "deploy", "helm", "rackmon")
-    if not os.path.isdir(base):
-        pytest.skip("el chart no esta en este arbol")
-
-    with open(os.path.join(base, "values.yaml"), encoding="utf-8") as fh:
-        valores = yaml.safe_load(fh)
-    if str((valores.get("config") or {}).get("environment", "")) != "production":
-        pytest.skip("el chart no despliega en produccion")
-
-    with open(os.path.join(base, "templates", "config.yaml"), encoding="utf-8") as fh:
-        plantilla = fh.read()
-    with open(os.path.join(base, "templates", "api.yaml"), encoding="utf-8") as fh:
-        api = fh.read()
-
-    for var in sorted(_vigiladas()):
-        assert var in plantilla, (
-            f"el chart despliega en produccion pero su Secret no define {var}: "
-            "el pod no arrancaria nunca"
-        )
-        assert var in api, (
-            f"{var} esta en el Secret pero el contenedor no lo lee: api.yaml "
-            "nombra las claves una a una con secretKeyRef, asi que anadirla al "
-            "Secret no basta"
-        )

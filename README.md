@@ -52,7 +52,7 @@ Everything is included: SSO, LDAP/Active Directory, SLA reports, the public
 status page and white-label branding. There is no Pro edition, no licence key and
 no device limit — RackMon used to be open-core and that is over.
 
-- **522 backend tests** across 67 files, **49 frontend tests**, and an
+- **520 backend tests** across 67 files, **49 frontend tests**, and an
   **API&harr;frontend contract test** that pins every field the UI reads, so a
   serialization drift cannot silently break a screen.
 - Runs with **zero external hardware** thanks to a built-in SNMP simulator —
@@ -237,7 +237,7 @@ Every setting, with its real default and a comment, is in [`.env.example`](.env.
 
 ```bash
 cd backend
-python -m pytest -q         # 522 tests
+python -m pytest -q         # 520 tests
 python -m pytest --cov=app  # with coverage
 ```
 

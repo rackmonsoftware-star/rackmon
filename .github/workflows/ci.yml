@@ -100,7 +100,16 @@ jobs:
         run: npm ci && npm run build
       - name: Install Playwright browsers (Chromium, Firefox, WebKit)
         working-directory: frontend
-        run: npx playwright install --with-deps chromium firefox webkit
+        # `--with-deps` instala paquetes del sistema con apt, y esa lista va
+        # atada a la version de Ubuntu que conocia Playwright cuando se publico.
+        # Cuando el runner adelanta de version, ese paso revienta aunque las
+        # bibliotecas ya esten en la imagen — que en los runners de GitHub lo
+        # estan. Si falla, se instalan solo los motores: si de verdad faltara
+        # alguna biblioteca, el paso siguiente lo dira claro al abrir el
+        # navegador, en vez de morir en un apt-get.
+        run: |
+          npx playwright install --with-deps chromium firefox webkit \
+            || npx playwright install chromium firefox webkit
       - name: Start backend (serves API + SPA)
         working-directory: backend
         env:
@@ -120,6 +129,9 @@ jobs:
         with:
           name: playwright-report
           path: frontend/e2e/report
+          # Si el trabajo muere antes de que Playwright escriba nada, no hay
+          # informe que subir y eso no es un aviso que merezca la pena leer.
+          if-no-files-found: ignore
 
   kubernetes:
     name: Helm install on real Kubernetes (kind)
