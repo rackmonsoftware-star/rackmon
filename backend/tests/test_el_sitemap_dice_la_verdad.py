@@ -22,7 +22,26 @@ import re
 import pytest
 
 RAIZ = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-WEB = os.path.join(RAIZ, "website")
+
+
+def _donde_esta_la_web() -> str:
+    """El sitio no vive dentro de este repositorio, y es a proposito.
+
+    Lleva la clave de IndexNow, que no puede acabar publicada. En la maquina
+    desde la que se publica esta al lado del repositorio (`cloudflare/web/`);
+    en un clon no esta en ninguna parte y estas pruebas se saltan. Se miran las
+    dos ubicaciones para que, si algun dia vuelve a estar dentro, siga valiendo.
+    """
+    for c in (
+        os.path.join(RAIZ, "website"),
+        os.path.join(os.path.dirname(RAIZ), "cloudflare", "web"),
+    ):
+        if os.path.isfile(os.path.join(c, "sitemap.xml")):
+            return c
+    return os.path.join(RAIZ, "website")
+
+
+WEB = _donde_esta_la_web()
 SITEMAP = os.path.join(WEB, "sitemap.xml")
 BASE = "https://rackmon.app/"
 
@@ -72,17 +91,42 @@ def _url_de(pagina: str) -> str:
     return BASE if pagina == "index.html" else BASE + pagina
 
 
+# Ficheros que se publican pero NO son paginas, y que por eso no van al sitemap
+# ni pueden declararse noindex: son fichas de verificacion que el buscador pone
+# y comprueba por su contenido exacto. Anadirles una etiqueta los cambiaria y
+# podria invalidar la verificacion del dominio, que es justo lo que no se quiere
+# perder. `googleXXXX.html` es la de Google Search Console; `BingSiteAuth.xml`
+# seria la de Bing si algun dia se usa.
+FICHAS_DE_VERIFICACION = re.compile(r"^(google[0-9a-f]+\.html|BingSiteAuth\.xml)$", re.I)
+
+
 def test_toda_pagina_indexable_esta_en_el_sitemap():
     listadas = {loc for loc, _ in _entradas()}
     faltan = [
         p
         for p in _paginas_en_disco()
-        if "noindex" not in _texto(os.path.join(WEB, p)).lower() and _url_de(p) not in listadas
+        if not FICHAS_DE_VERIFICACION.match(os.path.basename(p))
+        and "noindex" not in _texto(os.path.join(WEB, p)).lower()
+        and _url_de(p) not in listadas
     ]
     assert not faltan, (
         "estas paginas se publican pero no estan en el sitemap, asi que nadie las "
         f"buscara: {faltan}. Si alguna no debe indexarse, que lo diga ella con "
         "<meta name='robots' content='noindex'>."
+    )
+
+
+def test_la_ficha_de_google_sigue_publicada():
+    """Si desaparece, se pierde la verificacion del dominio en Search Console.
+
+    Solo existia en el servidor de Hetzner hasta el 4-nov-2026; se rescato al
+    arbol justo antes de darlo de baja. Esta prueba es para que no vuelva a
+    depender de un sitio del que nadie se acuerda.
+    """
+    fichas = [p for p in _paginas_en_disco() if FICHAS_DE_VERIFICACION.match(os.path.basename(p))]
+    assert fichas, (
+        "no hay ninguna ficha de verificacion de buscador en el sitio. Si se "
+        "publica asi, Search Console deja de reconocer el dominio como tuyo."
     )
 
 

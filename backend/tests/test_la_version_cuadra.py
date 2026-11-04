@@ -71,10 +71,24 @@ def test_el_frontend_declara_la_misma_version():
 
 
 def test_el_manifiesto_anuncia_esta_version():
-    """Solo si el manifiesto esta presente: vive en website/, que no se publica."""
+    """Solo si el manifiesto esta presente: vive con el sitio, que no se publica.
+
+    Desde el 4-nov-2026 el sitio esta FUERA de este repositorio (lleva la clave
+    de IndexNow, que no puede acabar publicada), asi que el manifiesto se busca
+    tambien al lado, en `cloudflare/web/`. Sin esta segunda ruta la prueba se
+    saltaba en silencio tras la mudanza y dejaba de vigilar lo que vigilaba:
+    que el aviso que leen las instalaciones anuncie la version que de verdad hay.
+    """
     texto = _lee("website", "updates", "manifest.json")
     if texto is None:
-        pytest.skip("website/updates/manifest.json no esta en este arbol")
+        fuera = os.path.join(
+            os.path.dirname(RAIZ), "cloudflare", "web", "updates", "manifest.json"
+        )
+        if os.path.isfile(fuera):
+            with open(fuera, encoding="utf-8") as fh:
+                texto = fh.read()
+    if texto is None:
+        pytest.skip("el manifiesto no esta ni en este arbol ni en cloudflare/web/")
     datos = json.loads(texto)
     assert datos["stable"]["version"] == APP_VERSION, (
         f"el manifiesto anuncia {datos['stable']['version']!r} y el producto va por "

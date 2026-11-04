@@ -15,8 +15,10 @@ Usage:
         --announce-body "Upgrade for the new SLA templates." \
         --announce-level info --announce-link https://rackmon.app/changelog.html
 
-After running, publish website/updates/manifest.json to your update URL and push
-the container image tags (see the printed checklist).
+The update manifest is not part of this repository: it belongs to whoever hosts
+the update URL, so this script looks for it beside the repo as well. After
+running, deploy the updated manifest to that URL and push the container image
+tags (see the printed checklist).
 """
 from __future__ import annotations
 
@@ -29,7 +31,28 @@ import sys
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 CONFIG = ROOT / "backend" / "app" / "config.py"
-MANIFEST = ROOT / "website" / "updates" / "manifest.json"
+
+
+def _find_manifest() -> pathlib.Path:
+    """Locate the update manifest, which lives outside this repository.
+
+    The site is deployed from Cloudflare and is deliberately not committed here:
+    it carries an IndexNow key that must never be published. In the maintainer's
+    working tree it sits beside the repo, so the two candidates are tried in
+    turn and the first that exists wins. If neither does, the caller gets a
+    clear error instead of a file quietly created in the wrong place.
+    """
+    for candidate in (
+        ROOT / "website" / "updates" / "manifest.json",
+        ROOT.parent / "cloudflare" / "web" / "updates" / "manifest.json",
+    ):
+        if candidate.is_file():
+            return candidate
+    # Nothing found: return the expected location so the error names it.
+    return ROOT.parent / "cloudflare" / "web" / "updates" / "manifest.json"
+
+
+MANIFEST = _find_manifest()
 CHART = ROOT / "deploy" / "helm" / "rackmon" / "Chart.yaml"
 VALUES = ROOT / "deploy" / "helm" / "rackmon" / "values.yaml"
 PACKAGE = ROOT / "frontend" / "package.json"
@@ -173,7 +196,7 @@ def main() -> None:
         print(f"                              docker tag rackmon/rackmon:{args.version} rackmon/rackmon:latest")
         print(f"                              docker push rackmon/rackmon:{args.version} && docker push rackmon/rackmon:latest")
         print("  2. Commit & tag:            git commit -am 'release: {v}' && git tag v{v}".format(v=args.version))
-    print(f"  {'3' if args.version else '1'}. Publish the manifest:    deploy website/updates/manifest.json to your update URL")
+    print(f"  {'3' if args.version else '1'}. Publish the manifest:    deploy {MANIFEST} to your update URL")
     print("     Instances with update checks ON will show the banner within their cache window (~6h).")
 
 

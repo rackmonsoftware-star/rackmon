@@ -452,3 +452,19 @@ think — it is how other people with hot racks find it.
 
 MIT — see [LICENSE](LICENSE). Use it, change it, run it for clients, fork it.
 Copyright © 2026 Enrique González Romero.
+
+Two things worth spelling out, because MIT is short and people skim it:
+
+- **Keep the copyright notice.** MIT asks for one thing in return: that the
+  notice and the licence text travel with every copy or substantial portion,
+  including modified ones. That is not a formality — it is the only line in the
+  licence that protects authorship, and dropping it ends your permission to use
+  the code at all.
+- **The name is not part of the licence.** You can fork this and call your fork
+  whatever you like; please do not call it RackMon. The licence covers the code,
+  not the name, the logo or rackmon.app — and a fork that keeps the name makes
+  it impossible for anyone to tell which one they are installing.
+
+If you build something good on top of this, I would rather hear about it than
+not: open an issue, or say hello on
+[LinkedIn](https://www.linkedin.com/in/enrique-gonz%C3%A1lez-romero-1b6a90275).

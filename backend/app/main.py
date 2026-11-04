@@ -108,6 +108,17 @@ app = FastAPI(
     title="RackMon API",
     version=APP_VERSION,
     description="Thermal monitoring platform for server racks (SNMP).",
+    # Authorship and licence travel with the API description itself, so every
+    # installation serves them at /docs and /openapi.json without anyone having
+    # to go looking for a repository.
+    contact={
+        "name": "Enrique González Romero",
+        "url": "https://www.linkedin.com/in/enrique-gonz%C3%A1lez-romero-1b6a90275",
+    },
+    license_info={
+        "name": "MIT",
+        "url": "https://github.com/rackmonsoftware-star/rackmon/blob/main/LICENSE",
+    },
     lifespan=lifespan,
     docs_url="/docs" if _docs else None,
     redoc_url="/redoc" if _docs else None,

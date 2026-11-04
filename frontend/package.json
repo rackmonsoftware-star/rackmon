@@ -2,6 +2,14 @@
   "name": "rackmon-frontend",
   "private": true,
   "version": "1.3.0",
+  "description": "Self-hosted rack temperature and SNMP monitoring: live per-U heatmaps, alerting, SLA reports and a public status page.",
+  "author": "Enrique González Romero (https://www.linkedin.com/in/enrique-gonz%C3%A1lez-romero-1b6a90275)",
+  "license": "MIT",
+  "homepage": "https://rackmon.app",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rackmonsoftware-star/rackmon.git"
+  },
   "type": "module",
   "scripts": {
     "dev": "vite",

@@ -31,7 +31,25 @@ from app.config import APP_VERSION
 from app.services.updates import parse_semver
 
 RAIZ = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", ".."))
-MANIFIESTO = os.path.join(RAIZ, "website", "updates", "manifest.json")
+
+
+def _donde_esta_el_manifiesto() -> str:
+    """Vive fuera de este repositorio, junto al resto del sitio.
+
+    El sitio no se publica aqui porque lleva la clave de IndexNow. En la maquina
+    desde la que se publica esta al lado (`cloudflare/web/`); en un clon no
+    existe y estas pruebas se saltan.
+    """
+    for c in (
+        os.path.join(RAIZ, "website", "updates", "manifest.json"),
+        os.path.join(os.path.dirname(RAIZ), "cloudflare", "web", "updates", "manifest.json"),
+    ):
+        if os.path.isfile(c):
+            return c
+    return os.path.join(RAIZ, "website", "updates", "manifest.json")
+
+
+MANIFIESTO = _donde_esta_el_manifiesto()
 
 # `website/` esta en el .gitignore a proposito: ahi vive la clave de IndexNow,
 # que no puede acabar publicada nunca. Asi que en un clon del repositorio

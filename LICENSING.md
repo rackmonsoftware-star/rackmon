@@ -17,6 +17,21 @@ What MIT does not give you: a warranty, a liability guarantee, or a contractual
 response time. Issues here get read and answered, usually quickly, but nothing
 promises an SLA. If you need one in writing, say so and we can talk about it.
 
+## The name is not part of the licence
+
+MIT covers the code. It says nothing about the name, the logo or rackmon.app, and
+it grants no trademark rights.
+
+So: fork it, improve it, ship it — and please call your fork something else. Not
+as a legal threat, but because two different programs answering to "RackMon"
+leaves everyone unable to tell which one they are installing, which issue tracker
+to file against, and whose security advisory applies to them.
+
+The copyright notice is the other half of that. MIT asks for exactly one thing in
+return for everything above: that the notice and the licence text stay with every
+copy you distribute, modified or not. It is the only line in the licence that
+records who wrote this, and removing it ends your permission to use the code.
+
 ## This file used to say the opposite
 
 Until 1 November 2026 RackMon was open-core. The monitor was free, the source was
