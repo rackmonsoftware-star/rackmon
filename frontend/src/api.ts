@@ -43,6 +43,8 @@ export interface PublicStatus {
 export interface UpdateStatus {
   current: string;
   enabled: boolean;
+  /** Nadie ha respondido todavia si RackMon puede buscar actualizaciones. */
+  decision_pending: boolean;
   channel: string;
   checked: boolean;
   latest: string | null;

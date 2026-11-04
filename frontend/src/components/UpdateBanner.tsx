@@ -44,15 +44,60 @@ export default function UpdateBanner() {
       return "";
     }
   });
+  // La respuesta se guarda en el servidor, no aqui: esto solo evita que la
+  // pregunta siga en pantalla hasta la siguiente consulta del estado.
+  const [respondido, setRespondido] = useState(false);
+  const [guardando, setGuardando] = useState(false);
 
   if (!data) return null;
   const ann = data.announcement;
   const showAnn = !!ann && ann.id !== dismissed;
   const showUpdate = data.update_available && can("admin");
-  if (!showAnn && !showUpdate) return null;
+  // La pregunta solo se le hace a quien puede responderla, y solo una vez: la
+  // respuesta —cualquiera de las dos— queda guardada en el servidor.
+  const preguntar = data.decision_pending && can("admin") && !respondido;
+  if (!showAnn && !showUpdate && !preguntar) return null;
+
+  async function responder(acepta: boolean) {
+    setGuardando(true);
+    try {
+      await api.putSetting("updates", { enabled: acepta });
+      setRespondido(true);
+    } catch {
+      // Si no se pudo guardar, se deja la pregunta en pie: mejor volver a
+      // preguntar que dar por hecha una respuesta que no llego a ninguna parte.
+      setGuardando(false);
+    }
+  }
 
   return (
     <div className="mx-auto max-w-7xl space-y-2 px-4 pt-3">
+      {preguntar && (
+        <div className="rounded-md border border-accent/40 bg-accent/10 px-4 py-3 text-sm">
+          <div className="font-semibold text-ink">{t("askUpdatesTitle")}</div>
+          <p className="mt-1 max-w-3xl text-muted">{t("askUpdatesBody")}</p>
+          <div className="mt-3 flex flex-wrap items-center gap-3">
+            <button
+              autoFocus
+              disabled={guardando}
+              onClick={() => responder(true)}
+              className="rounded-md bg-accent px-4 py-2 font-semibold text-[color:var(--accent-ink)] hover:brightness-110 disabled:opacity-60"
+            >
+              {t("askUpdatesYes")}
+            </button>
+            <span className="rounded bg-accent/20 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-accent">
+              {t("askUpdatesRecommended")}
+            </span>
+            <button
+              disabled={guardando}
+              onClick={() => responder(false)}
+              className="rounded-md border border-[color:var(--border)] px-4 py-2 text-muted hover:text-ink disabled:opacity-60"
+            >
+              {t("askUpdatesNo")}
+            </button>
+          </div>
+        </div>
+      )}
       {showUpdate && (
         <div className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-md border border-accent/40 bg-accent/10 px-4 py-2 text-sm">
           <span className="rounded bg-accent px-1.5 py-0.5 text-[10px] font-bold uppercase text-[color:var(--accent-ink)]">

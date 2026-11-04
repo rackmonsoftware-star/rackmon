@@ -123,11 +123,27 @@ class Settings(BaseSettings):
     # en su .env no falle al arrancar: su valor se lee y se ignora.
     license_key: str = ""
 
-    # --- Update check & vendor announcements (opt-in; privacy-preserving) ---
-    # Self-hosted RackMon never phones home by default. When enabled (here or via
-    # the admin "updates" setting), the app periodically fetches a small static
-    # JSON manifest from the vendor (a plain GET — no telemetry is sent) to learn
-    # whether a newer version exists and to show optional vendor announcements.
+    # --- Update check & security notices (on by default; switch it off here) ---
+    #
+    # RackMon asks rackmon.app for a small static JSON file to learn whether a
+    # newer version exists. It is a plain GET: nothing about your racks, devices,
+    # metrics or users is sent, and nothing is stored beyond the web server's own
+    # access log (your IP and the RackMon version, like any HTTP request).
+    #
+    # It ships OFF, and stays off until an administrator says otherwise: on the
+    # first sign-in RackMon asks once, with "yes" recommended. Nothing leaves the
+    # machine before that answer, which is why the project can still say it does
+    # not call home on its own.
+    #
+    # The asking matters. Every release up to 1.2.9 could be made to serve any
+    # file the process could read, to a request with no account at all —
+    # including the environment holding the signing key. The fix shipped in
+    # 1.2.10, and there was no way to tell anyone, because this was off and
+    # nobody had ever been asked. The advisory went out through a Docker Hub
+    # description, which is not a channel, it is a hope.
+    #
+    # Setting this to true here skips the question and turns it on from the
+    # start — useful for an unattended install.
     update_check_enabled: bool = False
     update_manifest_url: str = ""   # empty -> the vendor default manifest URL
 

@@ -93,6 +93,27 @@ def _config(db: Session) -> tuple[bool, str, str]:
     return enabled, url, channel
 
 
+def decision_pendiente(db: Session) -> bool:
+    """¿Todavía no ha decidido nadie si RackMon puede buscar actualizaciones?
+
+    RackMon no hace una sola llamada al exterior hasta que un administrador
+    responde, y por eso el proyecto puede seguir diciendo que no llama a casa
+    por su cuenta. Pero una instalación a la que nunca se le preguntó es una
+    instalación a la que no se puede avisar: hasta la 1.2.9 había un fallo que
+    dejaba leer cualquier fichero sin tener cuenta, y la única forma de
+    contarlo fue la descripción de Docker Hub.
+
+    Se da por respondida si el ajuste guardado trae un "enabled" explícito, o si
+    quien despliega lo dejó decidido por entorno. Lo que no vale como respuesta
+    es la ausencia de todo: eso es que nadie ha mirado todavía.
+    """
+    row = db.get(Setting, "updates")
+    cfg = row.value if row and isinstance(row.value, dict) else {}
+    if "enabled" in cfg:
+        return False
+    return not get_settings().update_check_enabled
+
+
 def _fetch(url: str) -> dict | None:
     req = urllib.request.Request(
         url,
@@ -133,6 +154,9 @@ def get_update_status(db: Session, force: bool = False) -> dict:
     status: dict = {
         "current": APP_VERSION,
         "enabled": enabled,
+        # Se devuelve siempre, tambien con la comprobacion apagada: es justo
+        # cuando esta apagada cuando hay que preguntar.
+        "decision_pending": decision_pendiente(db),
         "channel": channel,
         "checked": False,
         "latest": None,
