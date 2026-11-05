@@ -1,0 +1,197 @@
+name: Publicar la imagen
+
+# Construye rackmon/rackmon y lo sube a Docker Hub.
+#
+# Hasta el 4 de noviembre de 2026 esto se hacía en un servidor propio, porque
+# una conexión doméstica no aguanta subir 424 MB: el proxy de Docker Desktop
+# corta cada capa por encima de 1,5 MB. Ese servidor ya no existe, así que la
+# imagen se construye y se publica aquí — gratis, y sin depender de ninguna
+# máquina de nadie.
+#
+# NO se dispara solo. Publicar una versión es una decisión, no una consecuencia
+# de hacer push: se lanza a mano desde la pestaña Actions, escribiendo la
+# versión que se quiere publicar. Eso evita el accidente de que un commit
+# cualquiera en main acabe en Docker Hub.
+#
+# Hacen falta dos secretos del repositorio (Settings > Secrets and variables >
+# Actions):
+#   DOCKERHUB_USERNAME  el usuario de Docker Hub
+#   DOCKERHUB_TOKEN     un token de acceso con permiso de escritura
+#                       (Docker Hub > Account settings > Personal access tokens)
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Versión a publicar (debe coincidir con APP_VERSION, p. ej. 1.4.0)'
+        required: true
+      latest:
+        description: '¿Mover también la etiqueta "latest"?'
+        type: boolean
+        default: true
+      ensayo:
+        description: 'Ensayo: construye y pasa las pruebas, pero NO publica nada'
+        type: boolean
+        default: false
+
+concurrency:
+  group: publicar-imagen
+  cancel-in-progress: false
+
+jobs:
+  publicar:
+    name: Construir, probar y publicar
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: La versión pedida es la que dice el código
+        run: |
+          # El número vive en UN sitio. Si se publicara una etiqueta que no
+          # coincide con lo que el programa dice de sí mismo, cada instalación
+          # vería una versión y el manifiesto otra, y el aviso de
+          # actualizaciones no cuadraría nunca.
+          CODIGO=$(sed -n 's/^APP_VERSION = "\([^"]*\)".*/\1/p' backend/app/config.py | head -1)
+          PEDIDA='${{ inputs.version }}'
+          echo "  el código dice : $CODIGO"
+          echo "  has pedido     : $PEDIDA"
+          if [ "$CODIGO" != "$PEDIDA" ]; then
+            echo "::error::El código va por $CODIGO y has pedido publicar $PEDIDA."
+            echo "::error::Corta la versión primero: python scripts/release.py $PEDIDA --notes ..."
+            exit 1
+          fi
+          echo "VERSION=$CODIGO" >> "$GITHUB_ENV"
+
+      - name: Esa versión no está ya publicada
+        if: inputs.ensayo != true
+        run: |
+          # Volver a publicar una etiqueta existente la SUSTITUYE en silencio, y
+          # quien ya la tuviera descargada se queda con otra cosa que se llama
+          # igual. Si de verdad hace falta rehacerla, se borra a mano en Docker
+          # Hub y se vuelve a lanzar esto.
+          HUB=$(curl -s --max-time 30 \
+            "https://hub.docker.com/v2/repositories/rackmon/rackmon/tags?page_size=100")
+          if printf '%s' "$HUB" | grep -q "\"name\": *\"$VERSION\""; then
+            echo "::error::rackmon/rackmon:$VERSION ya existe en Docker Hub."
+            exit 1
+          fi
+          echo "  $VERSION está libre"
+
+      - name: Construir
+        # El contexto es la RAÍZ del repositorio, no backend/. El Dockerfile
+        # copia de backend/ y de frontend/, y con el contexto equivocado la
+        # construcción falla o, peor, mete lo que no debe.
+        run: docker build -t "rackmon/rackmon:$VERSION" -f backend/Dockerfile .
+
+      - name: Prueba de humo — arranca, dice su versión, y no lleva basura dentro
+        run: |
+          set -e
+          docker run -d --name humo -e RACKMON_ENVIRONMENT=development \
+            "rackmon/rackmon:$VERSION"
+          for _ in $(seq 1 30); do
+            sleep 4
+            [ "$(docker inspect humo --format '{{.State.Health.Status}}')" = healthy ] && break
+          done
+          ESTADO=$(docker inspect humo --format '{{.State.Health.Status}}')
+          DICE=$(docker exec humo python -c "from app.config import APP_VERSION;print(APP_VERSION)")
+
+          # Lo que se mira AQUÍ y no en el código: qué hay DENTRO de la imagen ya
+          # construida. Comprobar el .dockerignore no basta — Docker solo lo lee
+          # si está en la raíz del contexto, y durante meses el fichero decía que
+          # las pruebas quedaban fuera mientras las pruebas iban dentro, con una
+          # licencia Pro perpetua firmada con la clave real del vendedor.
+          PRUEBAS=$(docker exec humo sh -c "ls /app/tests 2>/dev/null | wc -l" || echo 0)
+          LICENCIA=$(docker exec humo sh -c "grep -rl eyJhbGciOiJFZERTQSI /app 2>/dev/null | head -1" || true)
+          docker rm -f humo >/dev/null
+
+          [ "$ESTADO" = healthy ] || { echo "::error::la imagen no arranca sana: $ESTADO"; exit 1; }
+          [ "$DICE" = "$VERSION" ] || { echo "::error::la imagen dice ser $DICE, no $VERSION"; exit 1; }
+          [ "${PRUEBAS:-0}" -eq 0 ] || { echo "::error::la imagen lleva el banco de pruebas dentro ($PRUEBAS entradas)"; exit 1; }
+          [ -z "$LICENCIA" ] || { echo "::error::la imagen lleva una clave de licencia escrita: $LICENCIA"; exit 1; }
+          echo "  arranca sana, dice $VERSION, sin pruebas ni licencias dentro"
+
+      - name: Prueba de humo — el arranque que documenta el README
+        run: |
+          set -e
+          # Un README que dice "copia y pega esto" y falla en la primera línea
+          # cuesta más que uno desactualizado: quien lo prueba cierra la pestaña
+          # y no vuelve. Y lo que más fácil se rompe es justo esto: el contenedor
+          # corre como el usuario 10001, así que si /app/data no existe en la
+          # imagen con su dueño puesto, el volumen se crea como root y la base de
+          # datos no se puede escribir.
+          docker volume rm -f datos-readme >/dev/null 2>&1 || true
+          docker run -d --name readme -p 18000:8000 \
+            -e RACKMON_JWT_SECRET="$(openssl rand -hex 32)" \
+            -e RACKMON_MASTER_KEY="$(openssl rand -hex 32)" \
+            -e RACKMON_DATABASE_URL=sqlite:////app/data/rackmon.db \
+            -v datos-readme:/app/data \
+            "rackmon/rackmon:$VERSION"
+          for _ in $(seq 1 30); do
+            sleep 4
+            [ "$(docker inspect readme --format '{{.State.Health.Status}}')" = healthy ] && break
+          done
+          ESTADO=$(docker inspect readme --format '{{.State.Health.Status}}')
+          ESCRIBE=$(docker exec readme sh -c "test -s /app/data/rackmon.db && echo si || echo no")
+          docker rm -f readme >/dev/null; docker volume rm -f datos-readme >/dev/null
+
+          [ "$ESTADO" = healthy ] || { echo "::error::el arranque del README no levanta: $ESTADO"; exit 1; }
+          [ "$ESCRIBE" = si ] || { echo "::error::el arranque del README no escribe su base de datos en el volumen"; exit 1; }
+          echo "  el docker run del README arranca y guarda sus datos"
+
+      - name: Entrar en Docker Hub
+        # Sin "if": se entra SIEMPRE, también en ensayo. La primera versión se
+        # lo saltaba, y eso dejaba el ensayo cojo justo donde más falla una
+        # tubería nueva: un secreto mal pegado, un token caducado o sin permiso
+        # de escritura no se habrían notado hasta el día de publicar de verdad.
+        # Entrar no sube nada; el push sí, y ese sigue saltándose.
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Publicar
+        if: inputs.ensayo != true
+        run: |
+          set -e
+          docker push "rackmon/rackmon:$VERSION"
+          if [ "${{ inputs.latest }}" = "true" ]; then
+            docker tag "rackmon/rackmon:$VERSION" rackmon/rackmon:latest
+            docker push rackmon/rackmon:latest
+          fi
+
+      - name: Comprobar que Docker Hub la sirve de verdad
+        if: inputs.ensayo != true
+        run: |
+          # No basta con que el push diga que fue bien: se pregunta a Docker Hub.
+          for _ in $(seq 1 10); do
+            sleep 6
+            HUB=$(curl -s --max-time 30 \
+              "https://hub.docker.com/v2/repositories/rackmon/rackmon/tags?page_size=25")
+            printf '%s' "$HUB" | grep -q "\"name\": *\"$VERSION\"" && break
+          done
+          printf '%s' "$HUB" | grep -q "\"name\": *\"$VERSION\"" \
+            || { echo "::error::Docker Hub no lista la $VERSION"; exit 1; }
+          echo "  rackmon/rackmon:$VERSION publicada"
+
+      - name: Qué falta después
+        run: |
+          if [ "${{ inputs.ensayo }}" = "true" ]; then
+            echo "### Ensayo correcto — no se ha publicado nada" >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "La imagen $VERSION se construye y pasa las dos pruebas de humo," >> "$GITHUB_STEP_SUMMARY"
+            echo "y las credenciales de Docker Hub son validas." >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "Lo unico que el ensayo NO puede comprobar es que el token tenga permiso" >> "$GITHUB_STEP_SUMMARY"
+            echo "de **escritura**: uno de solo lectura entra igual de bien y falla al subir." >> "$GITHUB_STEP_SUMMARY"
+            echo "No hay forma de saberlo sin publicar algo, asi que asegurate de crearlo" >> "$GITHUB_STEP_SUMMARY"
+            echo "como *Read & Write*." >> "$GITHUB_STEP_SUMMARY"
+            echo "" >> "$GITHUB_STEP_SUMMARY"
+            echo "Para publicar de verdad, vuelve a lanzarlo sin marcar «ensayo»." >> "$GITHUB_STEP_SUMMARY"
+            exit 0
+          fi
+          echo "### rackmon/rackmon:$VERSION publicada" >> "$GITHUB_STEP_SUMMARY"
+          echo "" >> "$GITHUB_STEP_SUMMARY"
+          echo "Queda, desde tu equipo:" >> "$GITHUB_STEP_SUMMARY"
+          echo "1. \`scripts/DESPLEGAR-WEB-CLOUDFLARE.sh\` — publica la web **y el aviso de versión**." >> "$GITHUB_STEP_SUMMARY"
+          echo "   (Se niega a publicar el aviso si la imagen no estuviera en Docker Hub.)" >> "$GITHUB_STEP_SUMMARY"
+          echo "2. \`scripts/AVISAR-A-LOS-BUSCADORES.sh\` si cambiaron páginas." >> "$GITHUB_STEP_SUMMARY"
